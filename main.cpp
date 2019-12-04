@@ -14,7 +14,7 @@ int main(int argc, char** argv){
         return 1;
     }
 
-    window = SDL_CreateWindow("FLOING", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, 0);
+    window = SDL_CreateWindow("GNIOLF", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, 0);
 
     if(window == NULL){
         std::cout << "Could not create window: " << SDL_GetError() << std::endl;
