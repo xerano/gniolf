@@ -4,7 +4,7 @@
 
 typedef struct object{
     int x, y;
-    SDL_Texture *texture;
+    SDL_Rect srcR;
 } GameObject;
 
 typedef struct node{
@@ -19,6 +19,7 @@ typedef struct context {
     GameObject *leftPaddle;
     GameObject *rightPaddle;
     GameObject *gniolf;
+    SDL_Texture *textureMap;
 } GameContext;
 
 void appendObject(GameObjectNode *head, GameObject *o){
@@ -56,6 +57,23 @@ GameContext* init(){
         return NULL;
     }
 
+    if(IMG_Init(IMG_INIT_PNG) == 0){
+            printf("failed to init image: %s", IMG_GetError());
+            return NULL;
+    }
+
+    context->gniolf = malloc(sizeof(GameObject));
+    SDL_GetWindowSize(context->window, &context->gniolf->x, &context->gniolf->y);
+    context->gniolf->srcR.x = 16;
+    context->gniolf->srcR.y = 263;
+    context->gniolf->srcR.h = 16;
+    context->gniolf->srcR.w = 16;
+    
+    SDL_Surface *surface = IMG_Load("assets/bullets.png");
+    SDL_Texture *textureMap = SDL_CreateTextureFromSurface(context->renderer, surface);
+    SDL_FreeSurface(surface);
+    context->textureMap = textureMap;
+
     return context;
 }
 
@@ -66,16 +84,7 @@ int main(int argc, char** argv){
     
     GameContext *context = init();
     if(context != NULL)
-    {
-        if(IMG_Init(IMG_INIT_PNG) == 0){
-        printf("failed to init image: %s", IMG_GetError());
-        return 1;
-        }
-
-        surface = IMG_Load("assets/M484BulletCollection2.png");
-        texture = SDL_CreateTextureFromSurface(context->renderer, surface);
-        SDL_FreeSurface(surface);
-        
+    {   
         int done = 0;
         // main loop
         while(!done) {
@@ -138,4 +147,13 @@ int handle_events(GameContext *context){
 
 void render(GameContext *context) {
 
+    SDL_RenderClear(context->renderer);
+
+    SDL_Rect destR;
+    destR.x = context->gniolf->x / 2;
+    destR.y = context->gniolf->y / 2;
+    destR.h = context->gniolf->srcR.h;
+    destR.w = context->gniolf->srcR.w;
+    SDL_RenderCopy(context->renderer, context->textureMap, &context->gniolf->srcR, &destR);
+    SDL_RenderPresent(context->renderer);
 }
