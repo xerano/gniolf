@@ -1,0 +1,17 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build",
+            "command": "/usr/bin/gcc",
+            "type": "shell",
+            "args": [
+                "-g", "main.c","-o", "gniolf", "-lSDL2", "-lSDL2_image"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}
