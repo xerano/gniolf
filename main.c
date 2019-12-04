@@ -2,7 +2,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 
-typedef struct {
+typedef struct object{
     int x, y;
     SDL_Texture *texture;
 } GameObject;
@@ -18,6 +18,7 @@ typedef struct context {
     GameObjectNode *objects;
     GameObject *leftPaddle;
     GameObject *rightPaddle;
+    GameObject *gniolf;
 } GameContext;
 
 void appendObject(GameObjectNode *head, GameObject *o){
@@ -108,14 +109,31 @@ int handle_events(GameContext *context){
                         done=1;
                     break;
                 }
+                break;
             }
             case SDL_QUIT:
                 done = 1;
                 break;
         }
     }
-    return done;
 
+    if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT)) {
+        SDL_Log("Mouse Button 1 (left) is pressed.");
+    }
+    
+    if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_RIGHT)) {
+        SDL_Log("Mouse Button 3 (right) is pressed.");
+    }
+
+    const Uint8 *keyState = SDL_GetKeyboardState(NULL);
+    if(keyState[SDL_SCANCODE_UP]){
+        SDL_Log("UP is pressed.");
+    }
+    if(keyState[SDL_SCANCODE_DOWN]){
+        SDL_Log("DOWN is pressed.");
+    }
+
+    return done;
 }
 
 void render(GameContext *context) {
