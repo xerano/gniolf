@@ -1,66 +1,7 @@
+#include "main.h"
+#include "collison.h"
 #include <stdio.h>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
-#include <SDL2/SDL_ttf.h>
 #include <time.h>
-
-
-#define PADDLE_SPEED 5
-#define SCREEN_HEIGHT 600
-#define SCREEN_WIDTH 800
-#define FONT_SIZE 26
-
-typedef struct Vector {
-    float x;
-    float y;
-} Vector;
-
-typedef struct text {
-    int h,w;
-    SDL_Texture *texture;
-    TTF_Font *font;
-    SDL_Color textColor;
-} text;
-
-typedef struct object{
-    int x, y, vx, vy;
-    double angle;
-    Vector direction;
-    SDL_Texture *texture;
-    SDL_Rect srcR;
-    SDL_Rect collider;
-    int speed;
-} GameObject;
-
-typedef struct node{
-    GameObject *object;
-    struct node *next;
-} GameObjectNode;
-
-typedef struct context {
-    SDL_Window *window;
-    SDL_Renderer *renderer;
-    GameObjectNode *objects;
-    GameObject *leftPaddle;
-    GameObject *rightPaddle;
-    GameObject *gniolf;
-    SDL_Texture *textureMap;
-    SDL_Texture *textureMapPaddle;
-    SDL_Texture *scores[10];
-    SDL_Rect topWall, bottomWall, leftWall, rightWall;
-    text *message;
-    int leftScore;
-    int rightScore;
-} GameContext;
-
-// prototypes
-int handle_events(GameContext *context);
-void detect_collisions(GameContext *context);
-int check_collision(SDL_Rect a, SDL_Rect b);
-void update(GameContext *context);
-void render(GameContext *context);
-void createScores(GameContext *context);
-SDL_Texture* loadTexture(SDL_Renderer* renderer, const char* path);
 
 SDL_Texture* loadTexture(SDL_Renderer* renderer, const char* path){
     SDL_Surface *surface = IMG_Load(path);
@@ -110,8 +51,8 @@ GameContext* init(){
         exit(1);    
     }
 
-    int leftScore = 0;
-    int rightScore = 0;
+    context->leftScore = 0;
+    context->rightScore = 0;
 
     SDL_Rect topWall;
     topWall.x = 0;
@@ -188,7 +129,12 @@ GameContext* init(){
     
     context->message = malloc(sizeof(text));
     context->message->textColor = textColor;
-    context->message->font = TTF_OpenFont( "assets/Games.ttf", FONT_SIZE );
+    context->message->font = TTF_OpenFont( "assets/joystix.ttf", FONT_SIZE );
+
+    if(context->message->font == NULL) {
+        printf("Failed to load font: %s", TTF_GetError());
+        exit(1);
+    }
 
     createScores(context);
 
@@ -249,14 +195,14 @@ int handle_events(GameContext *context){
     }
 
     if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_RIGHT)) {
-        if(!check_collision(context->topWall, context->rightPaddle->collider)){
+        if(!collision_check(context->topWall, context->rightPaddle->collider)){
             context->rightPaddle->collider.y -= PADDLE_SPEED;
 
         }
     }
 
     if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT)) {
-        if(!check_collision(context->bottomWall, context->rightPaddle->collider)){
+        if(!collision_check(context->bottomWall, context->rightPaddle->collider)){
             context->rightPaddle->collider.y += PADDLE_SPEED;
         }
     } 
@@ -264,12 +210,12 @@ int handle_events(GameContext *context){
 
     const Uint8 *keyState = SDL_GetKeyboardState(NULL);
     if(keyState[SDL_SCANCODE_UP]){
-        if(!check_collision(context->topWall, context->leftPaddle->collider)){
+        if(!collision_check(context->topWall, context->leftPaddle->collider)){
             context->leftPaddle->collider.y -= PADDLE_SPEED;
         }
     }
     if(keyState[SDL_SCANCODE_DOWN]){
-        if(!check_collision(context->bottomWall, context->leftPaddle->collider)){
+        if(!collision_check(context->bottomWall, context->leftPaddle->collider)){
             context->leftPaddle->collider.y += PADDLE_SPEED;
         }
     }
@@ -312,29 +258,29 @@ void render(GameContext *context) {
 }
 
 void detect_collisions(GameContext *context){
-    if(check_collision(context->topWall, context->gniolf->collider)){
+    if(collision_check(context->topWall, context->gniolf->collider)){
         SDL_Log("Collision with top wall...");
         context->gniolf->direction.y *= -1.0;
     }
 
-    if(check_collision(context->bottomWall, context->gniolf->collider)){
+    if(collision_check(context->bottomWall, context->gniolf->collider)){
         SDL_Log("Collision with bottom wall...");
         context->gniolf->direction.y *= -1.0;
     }
 
-    if(check_collision(context->leftPaddle->collider, context->gniolf->collider)){
+    if(collision_check(context->leftPaddle->collider, context->gniolf->collider)){
         SDL_Log("Collision with left paddle...");
         context->gniolf->direction.x *= -1.0;
         context->gniolf->speed += 1;
     }
 
-    if(check_collision(context->rightPaddle->collider, context->gniolf->collider)){
+    if(collision_check(context->rightPaddle->collider, context->gniolf->collider)){
         SDL_Log("Collision with right paddle...");
         context->gniolf->direction.x *= -1.0;
         context->gniolf->speed += 1;
     }
 
-    if(check_collision(context->leftWall, context->gniolf->collider)){
+    if(collision_check(context->leftWall, context->gniolf->collider)){
         SDL_Log("Collision with left wall...");
         context->gniolf->direction.x *= -1.0;
         if(context->rightScore < 9){
@@ -342,7 +288,7 @@ void detect_collisions(GameContext *context){
         }
     }
 
-    if(check_collision(context->rightWall, context->gniolf->collider)){
+    if(collision_check(context->rightWall, context->gniolf->collider)){
         SDL_Log("Collision with right wall...");
         context->gniolf->direction.x *= -1.0;
         if(context->leftScore < 9){
@@ -351,49 +297,6 @@ void detect_collisions(GameContext *context){
     }
 
 
-}
-
-int check_collision(SDL_Rect a, SDL_Rect b){
-    int leftA, leftB;
-    int rightA, rightB;
-    int topA, topB;
-    int bottomA, bottomB;
-
-    //Calculate the sides of rect A
-    leftA = a.x;
-    rightA = a.x + a.w;
-    topA = a.y;
-    bottomA = a.y + a.h;
-
-    //Calculate the sides of rect B
-    leftB = b.x;
-    rightB = b.x + b.w;
-    topB = b.y;
-    bottomB = b.y + b.h;
-
-    //If any of the sides from A are outside of B
-    if( bottomA <= topB )
-    {
-        return 0;
-    }
-
-    if( topA >= bottomB )
-    {
-        return 0;
-    }
-
-    if( rightA <= leftB )
-    {
-        return 0;
-    }
-
-    if( leftA >= rightB )
-    {
-        return 0;
-    }
-
-    //If none of the sides from A are outside B
-    return 1;
 }
 
 void update(GameContext *context){
